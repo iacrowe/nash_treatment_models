@@ -5,8 +5,17 @@ library(patchwork)
 
 #### 10-year outcomes ####
 
-## 10-year outcome functions
-cmpRiskTidyLRM <- function(x, grp, lrm_risk_red, cvd_risk_red) { #sim output
+## 10-year mortality outcome functions
+# Function takes simulated data from 01_treatment_simulations
+# Tidies and then applies cuminc function from 'cmprsk' to estimate the cumulative incidence of mortality outcomes in a competing risk framework
+# Output processed to get 10-year outcomes
+
+cmpRiskTidyLRM <- 
+  function(x, # sim output
+           grp, # fibrosis stage
+           lrm_risk_red, # reduction in liver mortality risk
+           cvd_risk_red) # reduction in cvd mortality risk
+  { 
   
   x <-
     x %>%
@@ -59,66 +68,9 @@ cmpRiskTidyLRM <- function(x, grp, lrm_risk_red, cvd_risk_red) { #sim output
 }
 
 
-cmpRiskTidyMorbid <- function(x, grp, lrm_risk_red, cvd_risk_red) { #sim output
-  
-  x <-
-    x %>%
-    filter(
-      lrm_rr == lrm_risk_red &
-        cvd_rr == cvd_risk_red
-    )  
-  
-  a <- cuminc(x$SurvMorbid, x$Morbid)
-  
-  untreated <-
-    a %>%
-    list_modify("Tests" = NULL) %>%
-    map_df(`[`, c("time", "est"), .id = "Cause") %>%
-    mutate(Cause = recode(
-      Cause,
-      "1 1" = "CVD",
-      "1 2" = "Other",
-      "1 3" = "Decompensation",
-      "1 4" = "HCC")
-    ) %>%
-    mutate(
-      Group = "untreated"
-    )
-  
-  b <- cuminc(x$SurvMorbidRx, x$MorbidRx)
-  
-  treated <-
-    b %>%
-    list_modify("Tests" = NULL) %>%
-    map_df(`[`, c("time", "est"), .id = "Cause") %>%
-    mutate(Cause = recode(
-      Cause,
-      "1 1" = "CVD",
-      "1 2" = "Other",
-      "1 3" = "Decompensation",
-      "1 4" = "HCC")
-    ) %>%
-    mutate(
-      Group = "treated"
-    )
-  
-  out <- 
-    bind_rows(untreated, treated) %>%
-    mutate(
-      Stage = grp,
-      cvd_rr = cvd_risk_red,
-      liver_rr = lrm_risk_red
-    )
-  
-  return(out)
-}
-
-
 ## 10 year mortality outcomes
 
-### Takes data from simulations in 01_treatment_simulations
-
-F2_sims <- F2_liver03
+F2_sims <- F2_liver03 # from  01_treatment_simulations
 
 f2_liver03_10y_mort <-
   cmpRiskTidyLRM(F2_sims, grp = "F2", lrm_risk_red = 0.3, cvd_risk_red = 0) %>% 
@@ -163,13 +115,26 @@ cum_inc_mortality_at_10y <-
     f4_liver03_10y_mort
   )
 
+## Output: 10-year outcomes in the base case of 30% reduction in liver events and no impact on CVD
+cum_inc_mortality_at_10y
 
 
 #### Plot incidence of mortality ####
 
 ## Plot functions
 ### Data processing 
-cuminc_curve_mort_plot <- function(x, grp, lrm_risk_red, cvd_risk_red) {
+# Function takes simulated data from 01_treatment_simulations
+# Tidies and then applies cuminc function from 'cmprsk' to estimate the cumulative incidence of mortality outcomes in a competing risk framework
+# Output process using timepoints to get datapoints to plot cumulative incidence to 10 years
+
+
+cuminc_curve_mort_plot <- 
+  function(x, # sim output
+           grp, # Fibrosis stage
+           lrm_risk_red,  # reduction in liver mortality risk
+           cvd_risk_red)  # reduction in cvd mortality risk
+  
+  {
   
   x <-
     x %>%
@@ -227,10 +192,14 @@ cuminc_curve_mort_plot <- function(x, grp, lrm_risk_red, cvd_risk_red) {
 }
 
 
-times <- seq(0, 3660, by = 10)
+times <- seq(0, 3660, by = 10) # days for timepoints command
 
 ### Plot 
-lrm_plot_fn <- function(x, grp) {
+# Plot function for data processed by cuminc_curve_mort_plot function
+lrm_plot_fn <- 
+  function(x, # output from cuminc_curve_mort_plot function
+           grp) # fibrosis stage
+  {
   
   ggplot(x %>% filter(stage == grp)) +
     geom_line(
