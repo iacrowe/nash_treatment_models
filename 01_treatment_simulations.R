@@ -1,14 +1,15 @@
 #### Load packages ####
 library(tidyverse)
 
-#### Import data ####
-RawMortality1990 <- read_csv("RawMortality1990.csv")
+#### Import baseline mortality data ####
+## From https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/lifeexpectancies/datasets/nationallifetablesenglandreferencetables
+RawMortality <- read_csv("RawMortality.csv")
 
 ##  Add days data
-RawMortality1990Days <- RawMortality1990 %>% slice(rep(1:n(), each = 365))
+RawMortalityDays <- RawMortality %>% slice(rep(1:n(), each = 365))
 
 mortalityStart55y <- 
-  RawMortality1990Days %>%
+  RawMortalityDays %>%
   filter(Years >=55) %>%
   rowid_to_column("UI") %>%
   select(UI, Years, OverallMortRate)
@@ -181,3 +182,12 @@ F2_liver03 <-
     cvd_rr = 0,
     lrm_rr = 0.3
   )
+
+
+
+## Save simulated datasets if needed for future analysis
+
+# write_csv(F2_liver03, "F2_sims")
+# write_csv(F3_liver03, "F3_sims")
+# write_csv(F4_liver03, "F4_sims")
+
